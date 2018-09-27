@@ -1,4 +1,4 @@
-import {ascending, min, sum} from "d3-array";
+import {ascending, min, max, sum} from "d3-array";
 import {nest} from "d3-collection";
 import constant from "./constant";
 
@@ -122,26 +122,32 @@ export default function() {
   // nodes with no incoming links are assigned depth zero, while
   // nodes with no outgoing links are assigned the maximum depth.
   function computeNodeDepths(graph) {
-    var remainingNodes = graph.nodes,
-        nextNodes,
-        depth = 0;
-
-    while (remainingNodes.length) {
-      nextNodes = [];
-      remainingNodes.forEach(function(node) {
-        node.depth = depth;
-        node.sourceLinks.forEach(function(link) {
-          if (nextNodes.indexOf(link.target) < 0) {
-            nextNodes.push(link.target);
-          }
-        });
-      });
-      remainingNodes = nextNodes;
-      ++depth;
+    function hasDepth(node) {
+      return 'depth' in node;
     }
 
-    //
-    moveSinksRight(graph, depth);
+    var depth = 0;
+    if (graph.nodes.every(hasDepth)) {
+      depth = max(graph.nodes, function(n) { return n.depth; }) + 1;
+    } else {
+      var remainingNodes = graph.nodes,
+      nextNodes;
+      while (remainingNodes.length) {
+        nextNodes = [];
+        remainingNodes.forEach(function(node) {
+          node.depth = depth;
+          node.sourceLinks.forEach(function(link) {
+            if (nextNodes.indexOf(link.target) < 0) {
+              nextNodes.push(link.target);
+            }
+          });
+        });
+        remainingNodes = nextNodes;
+        ++depth;
+      }
+      moveSinksRight(graph, depth);
+    }
+
     scaleNodeDepths(graph, depth);
   }
 
